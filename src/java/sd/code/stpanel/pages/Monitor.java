@@ -54,15 +54,18 @@ public class Monitor extends HttpServlet {
                 out.println("<font size=2>" + now.toString() + "</font>");
                 out.println("<br/><br/>");
 
-                if (function.equals("system")){
-                    displaySystemStatus(url, out);
-                }
-                else if (function.equals("calls")) {
-
-                   displayActiveChannels(pbxfile, out);
-                }
-                else if (function.equals("cdr")){
-                   displayCDR(url, out);
+                switch (function) {
+                    case "system":
+                        displaySystemStatus(url, out);
+                        break;
+                    case "calls":
+                        displayActiveChannels(pbxfile, out);
+                        break;
+                    case "cdr":
+                        displayCDR(url, out);
+                        break;
+                    default:
+                        break;
                 }
 
                 out.println("<script type=\"text/javascript\">\n" +
@@ -127,77 +130,72 @@ public class Monitor extends HttpServlet {
 	out.println("<th>Duration</th><th>Application</th></tr>");
 	int count=0;
 	for (String line: lines) {
-		if (line.contains("!")) {
-		   String callid = line.substring(0, line.indexOf("!")).trim();
-		   count++;
-		   // Get details call info
-		   String info[] = General.getCallInfo(pbxfile, callid);
-		   if ((info != null) && (info.length > 30)){
-		   String callerID = getFieldValue("Caller ID:", info);
-		   String id = getFieldValue("UniqueID:", info);
-		   String extension = getFieldValue("Connected Line ID:", info);
-		   String duration = getFieldValue("Elapsed Time:", info);
-		   String application = getFieldValue("Application:", info);
-		   out.println("<tr>");
-		   out.println("<td>" + id + "</td>");
-		   out.println("<td>" + callerID + "</td>");
-		   out.println("<td>" + extension + "</td>");
-		   out.println("<td>" + duration + "</td>");
-		   out.println("<td>" + application + "</td>");
-		   
-		   out.println("</tr>");
-		   }
-		}
-	    }
-	    out.println("</table>");
-	    out.println("<script>document.getElementById('channels').innerHTML='" + count + "'</script>");
+            if (line.contains("!")) {
+               String callid = line.substring(0, line.indexOf("!")).trim();
+               count++;
+               // Get details call info
+               String info[] = General.getCallInfo(pbxfile, callid);
+               if ((info != null) && (info.length > 30)){
+                   String callerID = getFieldValue("Caller ID:", info);
+                   String id = getFieldValue("UniqueID:", info);
+                   String extension = getFieldValue("Connected Line ID:", info);
+                   String duration = getFieldValue("Elapsed Time:", info);
+                   String application = getFieldValue("Application:", info);
+                   out.println("<tr>");
+                   out.println("<td>" + id + "</td>");
+                   out.println("<td>" + callerID + "</td>");
+                   out.println("<td>" + extension + "</td>");
+                   out.println("<td>" + duration + "</td>");
+                   out.println("<td>" + application + "</td>");
+
+                   out.println("</tr>");
+               }
+            }
+        }
+        out.println("</table>");
+        out.println("<script>document.getElementById('channels').innerHTML='" + count + "'</script>");
 	
     }
     
     private void displayCDR(String url, PrintWriter out) throws IOException, ParseException {
 	
 	try {
-	     String resultText = General.restCallURL(url + "GetLastCDR", "");
+	    String resultText = General.restCallURL(url + "GetLastCDR", "");
 	
-	     out.println("<h2>Last CDRs</h2>");
-	     JSONParser parser = new JSONParser();
-	     JSONObject obj = (JSONObject) parser.parse(resultText);
-	     boolean success = Boolean.valueOf(obj.get("success").toString());
+	    out.println("<h2>Last CDRs</h2>");
+	    JSONParser parser = new JSONParser();
+	    JSONObject obj = (JSONObject) parser.parse(resultText);
+	    boolean success = Boolean.valueOf(obj.get("success").toString());
 
-	     if (success) {
-		 out.println("<table class=tform><tr>");
-		
-		 JSONObject result = (JSONObject) obj.get("result");
-		 JSONArray header = (JSONArray) result.get("header");
-		 JSONArray data = (JSONArray) result.get("data");
-		 
-		 
-		 // Table header
-		 if (header.size() > 0) {
-		     for (int i=0; i < header.size(); i++){
-			out.print("<th>" + header.get(i).toString() + "</th>");
-		     }
-		     
-		 }
-		 out.println("</tr>");
-		 
-		 // Records
-		 
-		 for (int i=0; i < data.size(); i++) {
-		     JSONArray record = (JSONArray)data.get(i);
-		     out.print("<tr>");
-		     for (int j=0; j < record.size(); j++){
-			 out.print("<td>" + record.get(j).toString() + "</td>");
-		     }
-		     out.println("</tr>");
-		 }
-	         out.println("</table>");
-	     
-	     
+            if (success) {
+                out.println("<table class=tform><tr>");
 
-	     }
-	}
-	catch (Exception ex){
+                JSONObject result = (JSONObject) obj.get("result");
+                JSONArray header = (JSONArray) result.get("header");
+                JSONArray data = (JSONArray) result.get("data");
+
+
+                // Table header
+                if (header.size() > 0) {
+                    for (int i=0; i < header.size(); i++){
+                        out.print("<th>" + header.get(i).toString() + "</th>");
+                    }
+
+                }
+                out.println("</tr>");
+
+                // Records
+                for (int i=0; i < data.size(); i++) {
+                    JSONArray record = (JSONArray)data.get(i);
+                    out.print("<tr>");
+                    for (int j=0; j < record.size(); j++){
+                        out.print("<td>" + record.get(j).toString() + "</td>");
+                    }
+                    out.println("</tr>");
+                }
+                out.println("</table>");
+	   }
+	} catch (Exception ex){
 	    out.println(ex.toString());
 	}
     }
